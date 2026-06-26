@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Islamic AI Assistant</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: #0f2f25;
+    color: #1a1a1a;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .app {
+    width: 100%;
+    max-width: 640px;
+    height: 90vh;
+    background: #fdfdfb;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  }
+  .header {
+    background: #145c3a;
+    color: white;
+    padding: 16px 20px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .messages {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+  .user {
+    align-self: flex-end;
+    background: #145c3a;
+    color: white;
+  }
+  .bot {
+    align-self: flex-start;
+    background: #eef3ef;
+    color: #1a1a1a;
+  }
+  .input-row {
+    display: flex;
+    padding: 12px;
+    border-top: 1px solid #ddd;
+    gap: 8px;
+  }
+  input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+  }
+  button {
+    background: #145c3a;
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">🌙 My Islamic AI Assistant</div>
+  <div class="messages" id="messages">
+    <div class="msg bot">Assalamu alaikum! Ask me anything — homework help, general questions, or anything else. I'll always answer from an Islamic perspective when it's relevant.</div>
+  </div>
+  <div class="input-row">
+    <input id="userInput" type="text" placeholder="Type your question..." />
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('userInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  // Keep track of conversation so the AI remembers context
+  let history = [];
+
+  function addMessage(text, sender) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + sender;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    addMessage(text, 'user');
+    history.push({ role: 'user', content: text });
+    inputEl.value = '';
+    sendBtn.disabled = true;
+
+    addMessage('Thinking...', 'bot');
+    const thinkingBubble = messagesEl.lastChild;
+
+    try {
+      // This calls OUR OWN backend function, not OpenAI directly.
+      // Our backend function holds the secret API key safely.
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history })
+      });
+
+      const data = await response.json();
+
+      if (data.reply) {
+        thinkingBubble.textContent = data.reply;
+        history.push({ role: 'assistant', content: data.reply });
+      } else {
+        thinkingBubble.textContent = 'Sorry, something went wrong. Please try again.';
+      }
+    } catch (err) {
+      thinkingBubble.textContent = 'Network error. Please try again.';
+    }
+
+    sendBtn.disabled = false;
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+</script>
+
+</body>
+</html>
