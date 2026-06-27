@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://muslimai-chat.vercel.app/sitemap.xml
