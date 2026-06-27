@@ -199,7 +199,7 @@
   // database policies permit — see the RLS policies we set up).
   const SUPABASE_URL = 'https://olbnswevqtekrvclxbwr.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_-YCRQq7oGvMpJcjZQNbq5A_ehnjP-Mj';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const messagesEl = document.getElementById('messages');
   const inputEl = document.getElementById('userInput');
@@ -222,7 +222,7 @@
 
   // ---------- Auth ----------
   async function refreshAuthUI() {
-    const { data } = await supabase.auth.getUser();
+    const { data } = await supabaseClient.auth.getUser();
     currentUser = data?.user || null;
 
     if (currentUser) {
@@ -236,14 +236,14 @@
 
   authBtn.addEventListener('click', async () => {
     if (currentUser) {
-      await supabase.auth.signOut();
+      await supabaseClient.auth.signOut();
       currentUser = null;
       await refreshAuthUI();
       messagesEl.innerHTML = '';
       loadGuestHistory();
     } else {
       // Redirects to Google, then back to this same page once signed in
-      await supabase.auth.signInWithOAuth({ provider: 'google' });
+      await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
     }
   });
 
@@ -278,7 +278,7 @@
     history = [];
     messagesEl.innerHTML = '';
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('messages')
       .select('role, content')
       .order('created_at', { ascending: true });
@@ -304,7 +304,7 @@
 
   async function saveMessageToAccount(role, content) {
     if (!currentUser) return;
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('messages')
       .insert({ user_id: currentUser.id, role, content: typeof content === 'string' ? content : JSON.stringify(content) });
     if (error) console.error('Could not save message:', error);
@@ -439,7 +439,7 @@
     if (!confirm('Clear your chat history? This cannot be undone.')) return;
 
     if (currentUser) {
-      const { error } = await supabase.from('messages').delete().eq('user_id', currentUser.id);
+      const { error } = await supabaseClient.from('messages').delete().eq('user_id', currentUser.id);
       if (error) console.error('Could not clear account history:', error);
     } else {
       localStorage.removeItem(GUEST_STORAGE_KEY);
@@ -462,7 +462,7 @@
 
   // Re-check auth state whenever Supabase reports a change
   // (e.g. right after the Google sign-in redirect completes)
-  supabase.auth.onAuthStateChange(async (_event, _session) => {
+  supabaseClient.auth.onAuthStateChange(async (_event, _session) => {
     await refreshAuthUI();
     if (currentUser) {
       await loadAccountHistory();
