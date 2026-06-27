@@ -40,6 +40,35 @@
     padding: 16px 20px;
     font-size: 18px;
     font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .user-label {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.85;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .clear-btn {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .clear-btn:hover {
+    background: rgba(255,255,255,0.25);
   }
   .messages {
     flex: 1;
@@ -56,6 +85,12 @@
     line-height: 1.4;
     white-space: pre-wrap;
   }
+  .msg img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 6px;
+    display: block;
+  }
   .user {
     align-self: flex-end;
     background: #145c3a;
@@ -71,8 +106,9 @@
     padding: 12px;
     border-top: 1px solid #ddd;
     gap: 8px;
+    align-items: center;
   }
-  input {
+  input[type="text"] {
     flex: 1;
     padding: 12px 14px;
     border-radius: 10px;
@@ -92,68 +128,303 @@
     opacity: 0.6;
     cursor: default;
   }
+  .icon-btn {
+    background: #eef3ef;
+    color: #145c3a;
+    padding: 10px 12px;
+    font-size: 18px;
+    line-height: 1;
+  }
+  #imageInput {
+    display: none;
+  }
+  .preview-row {
+    padding: 0 12px;
+    display: none;
+  }
+  .preview-row.active {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px;
+  }
+  .preview-row img {
+    height: 50px;
+    border-radius: 6px;
+  }
+  .preview-row .remove {
+    background: #ddd;
+    color: #333;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    font-size: 13px;
+  }
 </style>
 </head>
 <body>
 
 <div class="app">
-  <div class="header">🌙 My Islamic AI Assistant</div>
-  <div class="messages" id="messages">
-    <div class="msg bot">Assalamu alaikum! Ask me anything — homework help, general questions, or anything else. I'll always answer from an Islamic perspective when it's relevant.</div>
+  <div class="header">
+    <span>🌙 Muslim AI</span>
+    <div class="header-actions">
+      <span id="userLabel" class="user-label"></span>
+      <button class="clear-btn" id="authBtn">Sign in with Google</button>
+      <button class="clear-btn" id="clearBtn">Clear chat</button>
+    </div>
   </div>
+  <div class="messages" id="messages"></div>
+
+  <div class="preview-row" id="previewRow">
+    <img id="previewImg" src="" alt="preview" />
+    <button class="remove" id="removePreview">✕</button>
+  </div>
+
   <div class="input-row">
+    <input type="file" id="imageInput" accept="image/*" />
+    <button class="icon-btn" id="attachBtn" title="Attach an image">📎</button>
     <input id="userInput" type="text" placeholder="Type your question..." />
     <button id="sendBtn">Send</button>
   </div>
 </div>
 
+<!-- Supabase JS library, loaded from their public CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
 <script>
+  // ---------- Supabase setup ----------
+  // These two values are safe to be public (they only allow what your
+  // database policies permit — see the RLS policies we set up).
+  const SUPABASE_URL = 'https://olbnswevqtekrvclxbwr.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_-YCRQq7oGvMpJcjZQNbq5A_ehnjP-Mj';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   const messagesEl = document.getElementById('messages');
   const inputEl = document.getElementById('userInput');
   const sendBtn = document.getElementById('sendBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const authBtn = document.getElementById('authBtn');
+  const userLabel = document.getElementById('userLabel');
+  const attachBtn = document.getElementById('attachBtn');
+  const imageInput = document.getElementById('imageInput');
+  const previewRow = document.getElementById('previewRow');
+  const previewImg = document.getElementById('previewImg');
+  const removePreview = document.getElementById('removePreview');
 
-  // Keep track of conversation so the AI remembers context
-  let history = [];
+  const GUEST_STORAGE_KEY = 'muslimai_chat_history_guest';
+  const WELCOME_MSG = "Assalamu alaikum! Ask me anything — homework help, general questions, or attach a photo. I'll always answer from an Islamic perspective when it's relevant.";
 
-  function addMessage(text, sender) {
-    const div = document.createElement('div');
-    div.className = 'msg ' + sender;
-    div.textContent = text;
-    messagesEl.appendChild(div);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+  let history = [];            // sent to the AI (text + image data)
+  let pendingImageData = null; // base64 image waiting to be sent
+  let currentUser = null;      // Supabase user object, or null if signed out
+
+  // ---------- Auth ----------
+  async function refreshAuthUI() {
+    const { data } = await supabase.auth.getUser();
+    currentUser = data?.user || null;
+
+    if (currentUser) {
+      authBtn.textContent = 'Sign out';
+      userLabel.textContent = currentUser.email || '';
+    } else {
+      authBtn.textContent = 'Sign in with Google';
+      userLabel.textContent = '';
+    }
   }
 
+  authBtn.addEventListener('click', async () => {
+    if (currentUser) {
+      await supabase.auth.signOut();
+      currentUser = null;
+      await refreshAuthUI();
+      messagesEl.innerHTML = '';
+      loadGuestHistory();
+    } else {
+      // Redirects to Google, then back to this same page once signed in
+      await supabase.auth.signInWithOAuth({ provider: 'google' });
+    }
+  });
+
+  // ---------- Persistence ----------
+
+  // Guest mode (not signed in): keep it simple, just this browser
+  function saveGuestHistory() {
+    try {
+      localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(history));
+    } catch (e) {
+      console.error('Could not save guest history:', e);
+    }
+  }
+
+  function loadGuestHistory() {
+    try {
+      const saved = localStorage.getItem(GUEST_STORAGE_KEY);
+      if (saved) {
+        history = JSON.parse(saved);
+        history.forEach(renderStoredMessage);
+        return;
+      }
+    } catch (e) {
+      console.error('Could not load guest history:', e);
+    }
+    history = [];
+    addMessage(WELCOME_MSG, 'bot');
+  }
+
+  // Signed in: load from Supabase, save each message as it's sent
+  async function loadAccountHistory() {
+    history = [];
+    messagesEl.innerHTML = '';
+
+    const { data, error } = await supabase
+      .from('messages')
+      .select('role, content')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Could not load account history:', error);
+      addMessage('Could not load your saved history. Starting fresh.', 'bot');
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      addMessage(WELCOME_MSG, 'bot');
+      return;
+    }
+
+    data.forEach(row => {
+      // content is stored as plain text in the database; image attachments
+      // are only kept for the current session, not persisted long-term.
+      history.push({ role: row.role, content: row.content, displayText: row.content });
+      renderStoredMessage({ role: row.role, content: row.content, displayText: row.content });
+    });
+  }
+
+  async function saveMessageToAccount(role, content) {
+    if (!currentUser) return;
+    const { error } = await supabase
+      .from('messages')
+      .insert({ user_id: currentUser.id, role, content: typeof content === 'string' ? content : JSON.stringify(content) });
+    if (error) console.error('Could not save message:', error);
+  }
+
+  function renderStoredMessage(entry) {
+    if (entry.role === 'user') {
+      addMessage(entry.displayText || entry.content, 'user', entry.imagePreview);
+    } else if (entry.role === 'assistant') {
+      addMessage(entry.content, 'bot');
+    }
+  }
+
+  // ---------- UI rendering ----------
+  function addMessage(text, sender, imageSrc) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + sender;
+    if (text) {
+      const p = document.createElement('div');
+      p.textContent = text;
+      div.appendChild(p);
+    }
+    if (imageSrc) {
+      const img = document.createElement('img');
+      img.src = imageSrc;
+      div.appendChild(img);
+    }
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  // ---------- Image attach ----------
+  attachBtn.addEventListener('click', () => imageInput.click());
+
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingImageData = reader.result; // data:image/...;base64,....
+      previewImg.src = pendingImageData;
+      previewRow.classList.add('active');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  removePreview.addEventListener('click', () => {
+    pendingImageData = null;
+    imageInput.value = '';
+    previewRow.classList.remove('active');
+  });
+
+  // ---------- Sending ----------
   async function sendMessage() {
     const text = inputEl.value.trim();
-    if (!text) return;
+    if (!text && !pendingImageData) return;
 
-    addMessage(text, 'user');
-    history.push({ role: 'user', content: text });
+    const imageToSend = pendingImageData;
+    addMessage(text, 'user', imageToSend);
+
+    let messageForAI;
+    if (imageToSend) {
+      messageForAI = {
+        role: 'user',
+        content: [
+          { type: 'text', text: text || 'What do you see in this image?' },
+          { type: 'image_url', image_url: { url: imageToSend } }
+        ]
+      };
+    } else {
+      messageForAI = { role: 'user', content: text };
+    }
+
+    history.push({
+      role: 'user',
+      content: messageForAI.content,
+      displayText: text,
+      imagePreview: imageToSend || null
+    });
+
+    if (currentUser) {
+      saveMessageToAccount('user', text || '[image attached]');
+    } else {
+      saveGuestHistory();
+    }
+
     inputEl.value = '';
+    pendingImageData = null;
+    imageInput.value = '';
+    previewRow.classList.remove('active');
     sendBtn.disabled = true;
 
-    addMessage('Thinking...', 'bot');
-    const thinkingBubble = messagesEl.lastChild;
+    const thinkingBubble = addMessage('Thinking...', 'bot');
 
     try {
-      // This calls OUR OWN backend function, not OpenAI directly.
-      // Our backend function holds the secret API key safely.
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history })
+        body: JSON.stringify({ messages: history.map(h => ({ role: h.role, content: h.content })) })
       });
 
       const data = await response.json();
 
       if (data.reply) {
-        thinkingBubble.textContent = data.reply;
+        thinkingBubble.querySelector('div').textContent = data.reply;
         history.push({ role: 'assistant', content: data.reply });
+
+        if (currentUser) {
+          saveMessageToAccount('assistant', data.reply);
+        } else {
+          saveGuestHistory();
+        }
       } else {
-        thinkingBubble.textContent = 'Sorry, something went wrong. Please try again.';
+        thinkingBubble.querySelector('div').textContent = data.error
+          ? 'Sorry, something went wrong: ' + data.error
+          : 'Sorry, something went wrong. Please try again.';
       }
     } catch (err) {
-      thinkingBubble.textContent = 'Network error. Please try again.';
+      thinkingBubble.querySelector('div').textContent = 'Network error. Please try again.';
     }
 
     sendBtn.disabled = false;
@@ -163,6 +434,42 @@
   inputEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendMessage();
   });
+
+  clearBtn.addEventListener('click', async () => {
+    if (!confirm('Clear your chat history? This cannot be undone.')) return;
+
+    if (currentUser) {
+      const { error } = await supabase.from('messages').delete().eq('user_id', currentUser.id);
+      if (error) console.error('Could not clear account history:', error);
+    } else {
+      localStorage.removeItem(GUEST_STORAGE_KEY);
+    }
+
+    history = [];
+    messagesEl.innerHTML = '';
+    addMessage(WELCOME_MSG, 'bot');
+  });
+
+  // ---------- Init ----------
+  async function init() {
+    await refreshAuthUI();
+    if (currentUser) {
+      await loadAccountHistory();
+    } else {
+      loadGuestHistory();
+    }
+  }
+
+  // Re-check auth state whenever Supabase reports a change
+  // (e.g. right after the Google sign-in redirect completes)
+  supabase.auth.onAuthStateChange(async (_event, _session) => {
+    await refreshAuthUI();
+    if (currentUser) {
+      await loadAccountHistory();
+    }
+  });
+
+  init();
 </script>
 
 </body>
