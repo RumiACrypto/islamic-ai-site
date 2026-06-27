@@ -12,37 +12,88 @@
 <meta property="og:description" content="A free AI chatbot that answers everyday questions and homework help from an Islamic perspective." />
 <meta property="og:type" content="website" />
 <style>
+  @font-face {
+    font-family: 'Lulu';
+    src: url('fonts/LuluRegular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  :root {
+    --ink:      #1B1E2B;
+    --blue:     #8493D6;
+    --blue-deep: #2B3A67;
+    --blue-soft: #AEB9E6;
+    --bg:       #F3F5FC;
+    --bg-dim:   #E4E9F7;
+  }
+
   * { box-sizing: border-box; }
+
   body {
     margin: 0;
-    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: #0f2f25;
-    color: #1a1a1a;
+    font-family: 'Lulu', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    color: var(--ink);
     height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: var(--blue-deep);
+    background-image:
+      radial-gradient(circle at 10% 15%, rgba(132,147,214,0.18) 0, transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(132,147,214,0.14) 0, transparent 40%);
   }
+
   .app {
     width: 100%;
-    max-width: 640px;
-    height: 90vh;
-    background: #fdfdfb;
-    border-radius: 16px;
+    max-width: 660px;
+    height: 92vh;
+    background: var(--bg);
+    border-radius: 18px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+    border: 1px solid rgba(132,147,214,0.4);
   }
+
+  /* ---------- Header ---------- */
   .header {
-    background: #145c3a;
-    color: white;
-    padding: 16px 20px;
-    font-size: 18px;
-    font-weight: 600;
+    background: var(--blue-deep);
+    color: var(--bg);
+    padding: 18px 22px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
+    border-bottom: 2px solid var(--blue);
+  }
+  .header-title {
+    font-family: 'Lulu', Georgia, serif;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .header-title .crescent {
+    color: var(--blue-soft);
+    font-size: 19px;
+  }
+  /* Thin repeating geometric motif under the header — the page's one
+     decorative signature, echoing tile borders without being literal */
+  .header::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 5px;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--blue) 0 4px,
+      transparent 4px 9px
+    );
+    opacity: 0.55;
   }
   .header-actions {
     display: flex;
@@ -52,109 +103,139 @@
   .user-label {
     font-size: 12px;
     font-weight: 400;
-    opacity: 0.85;
+    opacity: 0.8;
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .clear-btn {
-    background: rgba(255,255,255,0.15);
-    border: none;
-    color: white;
-    font-size: 13px;
-    padding: 6px 12px;
+    background: rgba(247,243,232,0.12);
+    border: 1px solid rgba(247,243,232,0.25);
+    color: var(--bg);
+    font-family: 'Lulu', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 7px 13px;
     border-radius: 8px;
     cursor: pointer;
+    transition: background 0.15s ease;
   }
   .clear-btn:hover {
-    background: rgba(255,255,255,0.25);
+    background: rgba(247,243,232,0.22);
   }
+
+  /* ---------- Messages ---------- */
   .messages {
     flex: 1;
-    padding: 16px;
+    padding: 20px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+    background: var(--bg);
   }
   .msg {
-    max-width: 80%;
-    padding: 10px 14px;
-    border-radius: 12px;
-    line-height: 1.4;
+    max-width: 78%;
+    padding: 11px 15px;
+    border-radius: 14px;
+    line-height: 1.7;
     white-space: pre-wrap;
+    font-size: 18px;
   }
   .msg img {
     max-width: 100%;
-    border-radius: 8px;
-    margin-top: 6px;
+    border-radius: 10px;
+    margin-top: 8px;
     display: block;
   }
   .user {
     align-self: flex-end;
-    background: #145c3a;
-    color: white;
+    background: var(--blue-deep);
+    color: var(--bg);
+    border-bottom-right-radius: 4px;
   }
   .bot {
     align-self: flex-start;
-    background: #eef3ef;
-    color: #1a1a1a;
+    background: var(--bg-dim);
+    color: var(--ink);
+    border: 1px solid rgba(28,27,25,0.06);
+    border-bottom-left-radius: 4px;
   }
+
+  /* ---------- Input row ---------- */
   .input-row {
     display: flex;
-    padding: 12px;
-    border-top: 1px solid #ddd;
-    gap: 8px;
+    padding: 14px;
+    border-top: 1px solid rgba(28,27,25,0.08);
+    gap: 9px;
     align-items: center;
+    background: var(--bg);
   }
   input[type="text"] {
     flex: 1;
-    padding: 12px 14px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
-    font-size: 15px;
+    padding: 13px 16px;
+    border-radius: 11px;
+    border: 1.5px solid rgba(28,27,25,0.15);
+    font-size: 17px;
+    font-family: 'Lulu', sans-serif;
+    background: white;
+    color: var(--ink);
+  }
+  input[type="text"]:focus {
+    outline: none;
+    border-color: var(--blue-deep);
   }
   button {
-    background: #145c3a;
-    color: white;
+    background: var(--blue-deep);
+    color: var(--bg);
     border: none;
-    padding: 12px 18px;
-    border-radius: 10px;
+    padding: 13px 20px;
+    border-radius: 11px;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 17px;
+    font-weight: 500;
+    font-family: 'Lulu', sans-serif;
+    transition: background 0.15s ease;
+  }
+  button:hover:not(:disabled) {
+    background: var(--blue-deep);
   }
   button:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: default;
   }
   .icon-btn {
-    background: #eef3ef;
-    color: #145c3a;
-    padding: 10px 12px;
+    background: var(--bg-dim);
+    color: var(--blue-deep);
+    padding: 11px 13px;
     font-size: 18px;
     line-height: 1;
+  }
+  .icon-btn:hover:not(:disabled) {
+    background: var(--blue-soft);
   }
   #imageInput {
     display: none;
   }
   .preview-row {
-    padding: 0 12px;
+    padding: 0 14px;
     display: none;
+    background: var(--bg);
   }
   .preview-row.active {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding-top: 10px;
+    padding-top: 12px;
   }
   .preview-row img {
-    height: 50px;
-    border-radius: 6px;
+    height: 52px;
+    border-radius: 8px;
   }
   .preview-row .remove {
-    background: #ddd;
-    color: #333;
+    background: var(--bg-dim);
+    color: var(--ink);
     border: none;
     border-radius: 50%;
     width: 22px;
@@ -168,7 +249,7 @@
 
 <div class="app">
   <div class="header">
-    <span>🌙 Muslim AI</span>
+    <span class="header-title"><span class="crescent">🌙</span> Muslim AI</span>
     <div class="header-actions">
       <span id="userLabel" class="user-label"></span>
       <button class="clear-btn" id="authBtn">Sign in with Google</button>
