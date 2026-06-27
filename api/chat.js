@@ -35,6 +35,11 @@ Rules:
 6. Maintain a respectful, knowledgeable tone, like a well-studied
    Muslim friend who is also broadly knowledgeable, not preachy or
    judgmental toward the user.
+
+7. If shown an image, describe and analyze it helpfully, applying the
+   same Islamic-lens rules above wherever relevant (e.g. modesty,
+   ethics, or content concerns), without being preachy about ordinary
+   images like homework, objects, or everyday photos.
 `;
 
 export default async function handler(req, res) {
@@ -45,10 +50,40 @@ export default async function handler(req, res) {
   try {
     const { messages } = req.body;
 
-    // Groq uses the same message format as OpenAI: a "system" role message
-    // plus the conversation history, sent together.
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
-    const MODEL = 'llama-3.3-70b-versatile';
+
+    // Vision models can get confused if EVERY past message in the
+    // conversation is in the "array of parts" format (text + image).
+    // To keep things reliable, we only let the most recent message keep
+    // its image data. Every earlier message gets flattened to plain text,
+    // since the AI doesn't need to re-look at old photos to keep chatting.
+    const sanitizedMessages = messages.map((m, index) => {
+      const isLastMessage = index === messages.length - 1;
+
+      if (Array.isArray(m.content)) {
+        if (isLastMessage) {
+          return m; // keep the array format (text + image) for the newest message only
+        }
+        // Flatten older image messages down to just their text part
+        const textPart = m.content.find(part => part.type === 'text');
+        return {
+          role: m.role,
+          content: textPart?.text || '[The user shared an image in this message.]'
+        };
+      }
+
+      // Already plain text — leave as-is, but guard against null/undefined
+      return { role: m.role, content: typeof m.content === 'string' ? m.content : String(m.content ?? '') };
+    });
+
+    // Use the vision model only if the latest message actually contains an image
+    const lastMessage = sanitizedMessages[sanitizedMessages.length - 1];
+    const hasImage = Array.isArray(lastMessage?.content) &&
+      lastMessage.content.some(part => part.type === 'image_url');
+
+    const MODEL = hasImage
+      ? 'qwen/qwen3.6-27b'
+      : 'llama-3.3-70b-versatile';
 
     const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -60,7 +95,7 @@ export default async function handler(req, res) {
         model: MODEL,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          ...messages
+          ...sanitizedMessages
         ]
       })
     });
