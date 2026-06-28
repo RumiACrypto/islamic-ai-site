@@ -107,11 +107,26 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: data.error.message });
     }
 
-    const reply = data.choices?.[0]?.message?.content;
+    let reply = data.choices?.[0]?.message?.content;
 
     if (!reply) {
       console.error('Unexpected Groq response:', JSON.stringify(data));
       return res.status(500).json({ error: 'No reply received from the AI.' });
+    }
+
+    // Some models (especially reasoning/vision models like qwen) include
+    // their internal step-by-step thinking wrapped in <think>...</think>
+    // tags before the actual answer. Strip that out so the user only sees
+    // the final response, not the model's scratchpad.
+    reply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+    // Safety net: if for some reason the closing tag is missing (truncated
+    // response) but an opening tag exists, drop everything from the
+    // opening tag onward rather than showing a half-finished reasoning dump.
+    reply = reply.replace(/<think>[\s\S]*$/gi, '').trim();
+
+    if (!reply) {
+      return res.status(500).json({ error: 'The AI did not return a usable answer. Please try again.' });
     }
 
     return res.status(200).json({ reply });
