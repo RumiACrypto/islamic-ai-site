@@ -31,26 +31,16 @@
     font-family: 'Patrick Hand', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     color: var(--ink);
     height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--blue);
-    background-image:
-      radial-gradient(circle at 10% 15%, rgba(43,58,103,0.10) 0, transparent 40%),
-      radial-gradient(circle at 90% 85%, rgba(43,58,103,0.08) 0, transparent 40%);
+    overflow: hidden;
   }
 
   .app {
     width: 100%;
-    max-width: 660px;
-    height: 92vh;
+    height: 100vh;
     background: var(--bg);
-    border-radius: 18px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
-    border: 1px solid rgba(132,147,214,0.4);
   }
 
   /* ---------- Header ---------- */
@@ -128,11 +118,13 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 12px;
     background: var(--bg);
   }
   .msg {
-    max-width: 78%;
+    max-width: min(78%, 600px);
+    align-self: flex-start;
     padding: 11px 15px;
     border-radius: 14px;
     line-height: 1.5;
@@ -160,13 +152,22 @@
   }
 
   /* ---------- Input row ---------- */
+  .input-bar {
+    border-top: 1px solid rgba(28,27,25,0.08);
+    background: var(--bg);
+    display: flex;
+    justify-content: center;
+  }
+  .input-row-wrap {
+    width: 100%;
+    max-width: 680px;
+  }
   .input-row {
     display: flex;
-    padding: 14px;
-    border-top: 1px solid rgba(28,27,25,0.08);
+    padding: 14px 20px;
     gap: 9px;
     align-items: center;
-    background: var(--bg);
+    width: 100%;
   }
   input[type="text"] {
     flex: 1;
@@ -215,7 +216,7 @@
     display: none;
   }
   .preview-row {
-    padding: 0 14px;
+    padding: 0 20px;
     display: none;
     background: var(--bg);
   }
@@ -254,16 +255,20 @@
   </div>
   <div class="messages" id="messages"></div>
 
-  <div class="preview-row" id="previewRow">
-    <img id="previewImg" src="" alt="preview" />
-    <button class="remove" id="removePreview">✕</button>
-  </div>
+  <div class="input-bar">
+    <div class="input-row-wrap">
+      <div class="preview-row" id="previewRow">
+        <img id="previewImg" src="" alt="preview" />
+        <button class="remove" id="removePreview">✕</button>
+      </div>
 
-  <div class="input-row">
-    <input type="file" id="imageInput" accept="image/*" />
-    <button class="icon-btn" id="attachBtn" title="Attach an image">📎</button>
-    <input id="userInput" type="text" placeholder="Type your question..." />
-    <button id="sendBtn">Send</button>
+      <div class="input-row">
+        <input type="file" id="imageInput" accept="image/*" />
+        <button class="icon-btn" id="attachBtn" title="Attach an image">📎</button>
+        <input id="userInput" type="text" placeholder="Type your question..." />
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
   </div>
 </div>
 
