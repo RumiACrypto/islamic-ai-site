@@ -157,6 +157,14 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: none;
+    border: 2px solid rgba(247,243,232,0.4);
+  }
   .clear-btn {
     background: rgba(247,243,232,0.12);
     border: 1px solid rgba(247,243,232,0.25);
@@ -316,6 +324,7 @@
     <div class="header">
       <span class="header-title"><span class="crescent">🌙</span> Muslim AI</span>
       <div class="header-actions">
+        <img id="userAvatar" class="user-avatar" alt="" onerror="this.style.display='none'" />
         <span id="userLabel" class="user-label"></span>
         <button class="clear-btn" id="authBtn">Sign in with Google</button>
         <button class="clear-btn" id="clearBtn">Clear chat</button>
@@ -358,6 +367,7 @@
   const clearBtn = document.getElementById('clearBtn');
   const authBtn = document.getElementById('authBtn');
   const userLabel = document.getElementById('userLabel');
+  const userAvatar = document.getElementById('userAvatar');
   const attachBtn = document.getElementById('attachBtn');
   const imageInput = document.getElementById('imageInput');
   const previewRow = document.getElementById('previewRow');
@@ -382,11 +392,23 @@
 
     if (currentUser) {
       authBtn.textContent = 'Sign out';
-      userLabel.textContent = currentUser.email || '';
+      userLabel.textContent = '';
+
+      const meta = currentUser.user_metadata || {};
+      const avatarUrl = meta.avatar_url || meta.picture || '';
+      if (avatarUrl) {
+        userAvatar.src = avatarUrl;
+        userAvatar.style.display = 'inline-block';
+      } else {
+        userAvatar.style.display = 'none';
+      }
+
       sidebar.classList.add('active');
     } else {
       authBtn.textContent = 'Sign in with Google';
       userLabel.textContent = '';
+      userAvatar.style.display = 'none';
+      userAvatar.src = '';
       sidebar.classList.remove('active');
     }
   }
