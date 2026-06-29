@@ -37,10 +37,72 @@
   .app {
     width: 100%;
     height: 100vh;
-    background: var(--bg);
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--blue-deep);
+    color: var(--bg);
+    display: none; /* shown only when signed in, via JS adding .active */
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar.active {
+    display: flex;
+  }
+  .new-chat-btn {
+    margin: 14px;
+    padding: 11px 14px;
+    background: rgba(247,243,232,0.12);
+    border: 1px solid rgba(247,243,232,0.3);
+    color: var(--bg);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Patrick Hand', sans-serif;
+    font-size: 15px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .new-chat-btn:hover {
+    background: rgba(247,243,232,0.22);
+  }
+  .conversation-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .conversation-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: rgba(247,243,232,0.85);
+  }
+  .conversation-item:hover {
+    background: rgba(247,243,232,0.10);
+  }
+  .conversation-item.selected {
+    background: rgba(247,243,232,0.18);
+    color: var(--bg);
+  }
+  .chat-column {
+    flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: var(--bg);
   }
 
   /* ---------- Header ---------- */
@@ -245,28 +307,35 @@
 <body>
 
 <div class="app">
-  <div class="header">
-    <span class="header-title"><span class="crescent">🌙</span> Muslim AI</span>
-    <div class="header-actions">
-      <span id="userLabel" class="user-label"></span>
-      <button class="clear-btn" id="authBtn">Sign in with Google</button>
-      <button class="clear-btn" id="clearBtn">Clear chat</button>
-    </div>
+  <div class="sidebar" id="sidebar">
+    <button class="new-chat-btn" id="newChatBtn">+ New chat</button>
+    <div class="conversation-list" id="conversationList"></div>
   </div>
-  <div class="messages" id="messages"></div>
 
-  <div class="input-bar">
-    <div class="input-row-wrap">
-      <div class="preview-row" id="previewRow">
-        <img id="previewImg" src="" alt="preview" />
-        <button class="remove" id="removePreview">✕</button>
+  <div class="chat-column">
+    <div class="header">
+      <span class="header-title"><span class="crescent">🌙</span> Muslim AI</span>
+      <div class="header-actions">
+        <span id="userLabel" class="user-label"></span>
+        <button class="clear-btn" id="authBtn">Sign in with Google</button>
+        <button class="clear-btn" id="clearBtn">Clear chat</button>
       </div>
+    </div>
+    <div class="messages" id="messages"></div>
 
-      <div class="input-row">
-        <input type="file" id="imageInput" accept="image/*" />
-        <button class="icon-btn" id="attachBtn" title="Attach an image">📎</button>
-        <input id="userInput" type="text" placeholder="Type your question..." />
-        <button id="sendBtn">Send</button>
+    <div class="input-bar">
+      <div class="input-row-wrap">
+        <div class="preview-row" id="previewRow">
+          <img id="previewImg" src="" alt="preview" />
+          <button class="remove" id="removePreview">✕</button>
+        </div>
+
+        <div class="input-row">
+          <input type="file" id="imageInput" accept="image/*" />
+          <button class="icon-btn" id="attachBtn" title="Attach an image">📎</button>
+          <input id="userInput" type="text" placeholder="Type your question..." />
+          <button id="sendBtn">Send</button>
+        </div>
       </div>
     </div>
   </div>
@@ -294,6 +363,9 @@
   const previewRow = document.getElementById('previewRow');
   const previewImg = document.getElementById('previewImg');
   const removePreview = document.getElementById('removePreview');
+  const sidebar = document.getElementById('sidebar');
+  const newChatBtn = document.getElementById('newChatBtn');
+  const conversationList = document.getElementById('conversationList');
 
   const GUEST_STORAGE_KEY = 'muslimai_chat_history_guest';
   const WELCOME_MSG = "Assalamualaikum, I am a muslim AI made to answer your questions in an islamic point of view when needed but I am here for any other questions as well!";
@@ -301,6 +373,7 @@
   let history = [];            // sent to the AI (text + image data)
   let pendingImageData = null; // base64 image waiting to be sent
   let currentUser = null;      // Supabase user object, or null if signed out
+  let currentConversationId = null; // null = guest mode, or no conversation started yet
 
   // ---------- Auth ----------
   async function refreshAuthUI() {
@@ -310,9 +383,11 @@
     if (currentUser) {
       authBtn.textContent = 'Sign out';
       userLabel.textContent = currentUser.email || '';
+      sidebar.classList.add('active');
     } else {
       authBtn.textContent = 'Sign in with Google';
       userLabel.textContent = '';
+      sidebar.classList.remove('active');
     }
   }
 
@@ -320,6 +395,7 @@
     if (currentUser) {
       await supabaseClient.auth.signOut();
       currentUser = null;
+      currentConversationId = null;
       await refreshAuthUI();
       messagesEl.innerHTML = '';
       loadGuestHistory();
@@ -355,40 +431,176 @@
     addMessage(WELCOME_MSG, 'bot');
   }
 
-  // Signed in: load from Supabase, save each message as it's sent
-  async function loadAccountHistory() {
+  // ---------- Conversations (signed-in users only) ----------
+  async function loadConversationList() {
+    const { data, error } = await supabaseClient
+      .from('conversations')
+      .select('id, title, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Could not load conversation list:', error);
+      return;
+    }
+
+    conversationList.innerHTML = '';
+    (data || []).forEach(conv => {
+      const item = document.createElement('div');
+      item.className = 'conversation-item';
+      item.textContent = conv.title || 'New conversation';
+      item.dataset.id = conv.id;
+      if (conv.id === currentConversationId) item.classList.add('selected');
+      item.addEventListener('click', () => openConversation(conv.id));
+      conversationList.appendChild(item);
+    });
+  }
+
+  function markSelectedConversation(id) {
+    document.querySelectorAll('.conversation-item').forEach(el => {
+      el.classList.toggle('selected', el.dataset.id === id);
+    });
+  }
+
+  async function openConversation(id) {
+    currentConversationId = id;
+    markSelectedConversation(id);
     history = [];
     messagesEl.innerHTML = '';
 
     const { data, error } = await supabaseClient
       .from('messages')
       .select('role, content')
+      .eq('conversation_id', id)
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Could not load account history:', error);
-      addMessage('Could not load your saved history. Starting fresh.', 'bot');
+      console.error('Could not load conversation messages:', error);
+      addMessage('Could not load this conversation.', 'bot');
       return;
     }
 
-    if (!data || data.length === 0) {
-      addMessage(WELCOME_MSG, 'bot');
-      return;
-    }
-
-    data.forEach(row => {
-      // content is stored as plain text in the database; image attachments
-      // are only kept for the current session, not persisted long-term.
+    (data || []).forEach(row => {
       history.push({ role: row.role, content: row.content, displayText: row.content });
       renderStoredMessage({ role: row.role, content: row.content, displayText: row.content });
     });
   }
 
-  async function saveMessageToAccount(role, content) {
+  function startNewChat() {
+    currentConversationId = null;
+    history = [];
+    messagesEl.innerHTML = '';
+    markSelectedConversation(null);
+    addMessage(WELCOME_MSG, 'bot');
+  }
+
+  newChatBtn.addEventListener('click', startNewChat);
+
+  // Generates a short topic title from the first exchange, using the
+  // same backend endpoint (keeps the Groq key on the server, not here).
+  async function generateConversationTitle(firstUserText, firstReplyText) {
+    try {
+      const response = await fetch('/api/title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userText: firstUserText, replyText: firstReplyText })
+      });
+      const data = await response.json();
+      return data.title || firstUserText.slice(0, 40);
+    } catch (e) {
+      console.error('Could not generate title:', e);
+      return firstUserText.slice(0, 40);
+    }
+  }
+
+  // Creates a new conversation row the first time a signed-in user sends
+  // a message in a fresh chat, then remembers its id for the rest of the session.
+  async function ensureConversation(firstUserText) {
+    if (currentConversationId) return currentConversationId;
+
+    const { data, error } = await supabaseClient
+      .from('conversations')
+      .insert({ user_id: currentUser.id, title: firstUserText.slice(0, 40) || 'New conversation' })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Could not create conversation:', error);
+      return null;
+    }
+
+    currentConversationId = data.id;
+    await loadConversationList();
+    return currentConversationId;
+  }
+
+  async function updateConversationTitle(id, title) {
+    const { error } = await supabaseClient
+      .from('conversations')
+      .update({ title })
+      .eq('id', id);
+    if (error) console.error('Could not update conversation title:', error);
+    await loadConversationList();
+  }
+
+  // ---------- Persistence ----------
+
+  // Guest mode (not signed in): keep it simple, just this browser
+  function saveGuestHistory() {
+    try {
+      localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(history));
+    } catch (e) {
+      console.error('Could not save guest history:', e);
+    }
+  }
+
+  function loadGuestHistory() {
+    try {
+      const saved = localStorage.getItem(GUEST_STORAGE_KEY);
+      if (saved) {
+        history = JSON.parse(saved);
+        history.forEach(renderStoredMessage);
+        return;
+      }
+    } catch (e) {
+      console.error('Could not load guest history:', e);
+    }
+    history = [];
+    addMessage(WELCOME_MSG, 'bot');
+  }
+
+  // Signed in: load the most recent conversation (or start fresh if none exist)
+  async function loadAccountHistory() {
+    await loadConversationList();
+
+    const { data, error } = await supabaseClient
+      .from('conversations')
+      .select('id')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Could not check for existing conversations:', error);
+      startNewChat();
+      return;
+    }
+
+    if (data && data.length > 0) {
+      await openConversation(data[0].id);
+    } else {
+      startNewChat();
+    }
+  }
+
+  async function saveMessageToAccount(role, content, conversationId) {
     if (!currentUser) return;
     const { error } = await supabaseClient
       .from('messages')
-      .insert({ user_id: currentUser.id, role, content: typeof content === 'string' ? content : JSON.stringify(content) });
+      .insert({
+        user_id: currentUser.id,
+        conversation_id: conversationId,
+        role,
+        content: typeof content === 'string' ? content : JSON.stringify(content)
+      });
     if (error) console.error('Could not save message:', error);
   }
 
@@ -446,6 +658,7 @@
     if (!text && !pendingImageData) return;
 
     const imageToSend = pendingImageData;
+    const isFirstMessageInChat = history.length === 0;
     addMessage(text, 'user', imageToSend);
 
     let messageForAI;
@@ -468,8 +681,10 @@
       imagePreview: imageToSend || null
     });
 
+    let convId = currentConversationId;
     if (currentUser) {
-      saveMessageToAccount('user', text || '[image attached]');
+      convId = await ensureConversation(text || '[image attached]');
+      saveMessageToAccount('user', text || '[image attached]', convId);
     } else {
       saveGuestHistory();
     }
@@ -496,7 +711,11 @@
         history.push({ role: 'assistant', content: data.reply });
 
         if (currentUser) {
-          saveMessageToAccount('assistant', data.reply);
+          saveMessageToAccount('assistant', data.reply, convId);
+          if (isFirstMessageInChat && convId) {
+            const title = await generateConversationTitle(text, data.reply);
+            await updateConversationTitle(convId, title);
+          }
         } else {
           saveGuestHistory();
         }
@@ -518,18 +737,32 @@
   });
 
   clearBtn.addEventListener('click', async () => {
-    if (!confirm('Clear your chat history? This cannot be undone.')) return;
+    if (!confirm('Delete this chat? This cannot be undone.')) return;
 
-    if (currentUser) {
-      const { error } = await supabaseClient.from('messages').delete().eq('user_id', currentUser.id);
-      if (error) console.error('Could not clear account history:', error);
+    if (currentUser && currentConversationId) {
+      const { error: msgErr } = await supabaseClient
+        .from('messages')
+        .delete()
+        .eq('conversation_id', currentConversationId);
+      if (msgErr) console.error('Could not delete conversation messages:', msgErr);
+
+      const { error: convErr } = await supabaseClient
+        .from('conversations')
+        .delete()
+        .eq('id', currentConversationId);
+      if (convErr) console.error('Could not delete conversation:', convErr);
+
+      await loadConversationList();
+      startNewChat();
+    } else if (currentUser) {
+      // No conversation started yet — nothing saved to delete
+      startNewChat();
     } else {
       localStorage.removeItem(GUEST_STORAGE_KEY);
+      history = [];
+      messagesEl.innerHTML = '';
+      addMessage(WELCOME_MSG, 'bot');
     }
-
-    history = [];
-    messagesEl.innerHTML = '';
-    addMessage(WELCOME_MSG, 'bot');
   });
 
   // ---------- Init ----------
