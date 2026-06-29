@@ -387,8 +387,8 @@
 
   // ---------- Auth ----------
   async function refreshAuthUI() {
-    const { data } = await supabaseClient.auth.getUser();
-    currentUser = data?.user || null;
+    const { data } = await supabaseClient.auth.getSession();
+    currentUser = data?.session?.user || null;
 
     if (currentUser) {
       authBtn.textContent = 'Sign out';
@@ -788,25 +788,24 @@
   });
 
   // ---------- Init ----------
-  async function init() {
-    await refreshAuthUI();
-    if (currentUser) {
-      await loadAccountHistory();
-    } else {
-      loadGuestHistory();
-    }
-  }
+  // onAuthStateChange fires immediately on page load with the current
+  // session state (event type "INITIAL_SESSION"), then again on any
+  // future sign-in/sign-out. Relying on this single listener (instead of
+  // also calling refreshAuthUI() separately on load) avoids a race where
+  // the guest view could flash or "stick" before the real session loads.
+  let hasLoadedInitialState = false;
 
-  // Re-check auth state whenever Supabase reports a change
-  // (e.g. right after the Google sign-in redirect completes)
   supabaseClient.auth.onAuthStateChange(async (_event, _session) => {
     await refreshAuthUI();
+
     if (currentUser) {
       await loadAccountHistory();
+    } else if (!hasLoadedInitialState) {
+      loadGuestHistory();
     }
-  });
 
-  init();
+    hasLoadedInitialState = true;
+  });
 </script>
 
 </body>
