@@ -387,8 +387,10 @@
 
   // ---------- Auth ----------
   async function refreshAuthUI() {
-    const { data } = await supabaseClient.auth.getSession();
+    const { data, error } = await supabaseClient.auth.getSession();
+    console.log('[DEBUG] getSession() result:', data, 'error:', error);
     currentUser = data?.session?.user || null;
+    console.log('[DEBUG] currentUser after getSession:', currentUser);
 
     if (currentUser) {
       authBtn.textContent = 'Sign out';
@@ -796,12 +798,18 @@
   let hasLoadedInitialState = false;
 
   supabaseClient.auth.onAuthStateChange(async (_event, _session) => {
+    console.log('[DEBUG] onAuthStateChange fired. event:', _event, 'session:', _session);
     await refreshAuthUI();
+    console.log('[DEBUG] after refreshAuthUI, currentUser is:', currentUser);
 
     if (currentUser) {
+      console.log('[DEBUG] taking signed-in path, loading account history');
       await loadAccountHistory();
     } else if (!hasLoadedInitialState) {
+      console.log('[DEBUG] taking guest path, hasLoadedInitialState was false');
       loadGuestHistory();
+    } else {
+      console.log('[DEBUG] no currentUser, but hasLoadedInitialState already true \u2014 skipping guest reload');
     }
 
     hasLoadedInitialState = true;
