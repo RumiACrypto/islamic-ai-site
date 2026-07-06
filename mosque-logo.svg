@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Blue background circle -->
+  <circle cx="100" cy="100" r="100" fill="#2B3A67"/>
+
+  <!-- Ground platform -->
+  <rect x="20" y="155" width="160" height="8" rx="3" fill="#AEB9E6" opacity="0.6"/>
+
+  <!-- === FAR LEFT SMALL MINARET === -->
+  <rect x="28" y="110" width="10" height="48" rx="2" fill="#AEB9E6"/>
+  <ellipse cx="33" cy="108" rx="7" ry="4" fill="#8493D6"/>
+  <polygon points="33,92 29,108 37,108" fill="#AEB9E6"/>
+  <ellipse cx="33" cy="92" rx="3" ry="2" fill="#8493D6"/>
+  <!-- crescent -->
+  <path d="M33,86 a3,3 0 1,1 0.1,0 a2,2 0 1,0 -0.1,0" fill="#C9A227"/>
+
+  <!-- === FAR RIGHT SMALL MINARET === -->
+  <rect x="162" y="110" width="10" height="48" rx="2" fill="#AEB9E6"/>
+  <ellipse cx="167" cy="108" rx="7" ry="4" fill="#8493D6"/>
+  <polygon points="167,92 163,108 171,108" fill="#AEB9E6"/>
+  <ellipse cx="167" cy="92" rx="3" ry="2" fill="#8493D6"/>
+  <path d="M167,86 a3,3 0 1,1 0.1,0 a2,2 0 1,0 -0.1,0" fill="#C9A227"/>
+
+  <!-- === LEFT MAIN MINARET === -->
+  <rect x="48" y="90" width="14" height="68" rx="2" fill="#AEB9E6"/>
+  <!-- balcony ring -->
+  <rect x="45" y="118" width="20" height="4" rx="2" fill="#C9A227" opacity="0.9"/>
+  <ellipse cx="55" cy="88" rx="9" ry="5" fill="#8493D6"/>
+  <polygon points="55,68 50,88 60,88" fill="#AEB9E6"/>
+  <ellipse cx="55" cy="68" rx="4" ry="3" fill="#8493D6"/>
+  <path d="M55,60 a4,4 0 1,1 0.1,0 a2.5,2.5 0 1,0 -0.1,0" fill="#C9A227"/>
+
+  <!-- === RIGHT MAIN MINARET === -->
+  <rect x="138" y="90" width="14" height="68" rx="2" fill="#AEB9E6"/>
+  <rect x="135" y="118" width="20" height="4" rx="2" fill="#C9A227" opacity="0.9"/>
+  <ellipse cx="145" cy="88" rx="9" ry="5" fill="#8493D6"/>
+  <polygon points="145,68 140,88 150,88" fill="#AEB9E6"/>
+  <ellipse cx="145" cy="68" rx="4" ry="3" fill="#8493D6"/>
+  <path d="M145,60 a4,4 0 1,1 0.1,0 a2.5,2.5 0 1,0 -0.1,0" fill="#C9A227"/>
+
+  <!-- === SIDE SMALL DOMES (left and right of main) === -->
+  <!-- Left small dome -->
+  <ellipse cx="72" cy="118" rx="16" ry="13" fill="#8493D6"/>
+  <rect x="56" y="118" width="32" height="40" rx="2" fill="#8493D6"/>
+  <polygon points="72,100 68,115 76,115" fill="#AEB9E6"/>
+  <path d="M72,96 a3,3 0 1,1 0.1,0 a2,2 0 1,0 -0.1,0" fill="#C9A227"/>
+
+  <!-- Right small dome -->
+  <ellipse cx="128" cy="118" rx="16" ry="13" fill="#8493D6"/>
+  <rect x="112" y="118" width="32" height="40" rx="2" fill="#8493D6"/>
+  <polygon points="128,100 124,115 132,115" fill="#AEB9E6"/>
+  <path d="M128,96 a3,3 0 1,1 0.1,0 a2,2 0 1,0 -0.1,0" fill="#C9A227"/>
+
+  <!-- === MAIN CENTRAL DOME === -->
+  <ellipse cx="100" cy="105" rx="30" ry="25" fill="#AEB9E6"/>
+  <rect x="70" y="105" width="60" height="53" rx="2" fill="#AEB9E6"/>
+  <!-- dome highlight -->
+  <ellipse cx="92" cy="98" rx="8" ry="5" fill="#F3F5FC" opacity="0.2"/>
+  <!-- dome tip -->
+  <polygon points="100,68 95,88 105,88" fill="#AEB9E6"/>
+  <ellipse cx="100" cy="68" rx="5" ry="3" fill="#8493D6"/>
+  <!-- crescent on main dome -->
+  <path d="M100,58 a5,5 0 1,1 0.1,0 a3,3 0 1,0 -0.1,0" fill="#C9A227"/>
+
+  <!-- === MAIN FACADE / BODY === -->
+  <!-- ornamental band across top of facade -->
+  <rect x="70" y="105" width="60" height="5" rx="1" fill="#C9A227" opacity="0.5"/>
+
+  <!-- Side windows on facade -->
+  <!-- Left window arch -->
+  <path d="M78,140 L78,128 Q83,120 88,128 L88,140 Z" fill="#1F2C50"/>
+  <!-- Right window arch -->
+  <path d="M112,140 L112,128 Q117,120 122,128 L122,140 Z" fill="#1F2C50"/>
+
+  <!-- === MAIN DOOR ARCH === -->
+  <path d="M88,158 L88,136 Q100,122 112,136 L112,158 Z" fill="#1F2C50"/>
+  <!-- door inner detail -->
+  <path d="M91,158 L91,138 Q100,127 109,138 L109,158 Z" fill="#2B3A67" opacity="0.6"/>
+  <!-- ornamental arch border -->
+  <path d="M88,136 Q100,122 112,136" fill="none" stroke="#C9A227" stroke-width="1.5" opacity="0.8"/>
+
+  <!-- Decorative dots along roofline -->
+  <circle cx="72" cy="105" r="2" fill="#C9A227" opacity="0.7"/>
+  <circle cx="80" cy="105" r="2" fill="#C9A227" opacity="0.7"/>
+  <circle cx="120" cy="105" r="2" fill="#C9A227" opacity="0.7"/>
+  <circle cx="128" cy="105" r="2" fill="#C9A227" opacity="0.7"/>
+
+  <!-- Small decorative circles on side domes -->
+  <circle cx="63" cy="118" r="2" fill="#C9A227" opacity="0.6"/>
+  <circle cx="137" cy="118" r="2" fill="#C9A227" opacity="0.6"/>
+</svg>

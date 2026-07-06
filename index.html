@@ -129,6 +129,35 @@
     color: var(--blue-soft);
     font-size: 19px;
   }
+  .ai-logo-header {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+  .ai-logo-bubble {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    align-self: flex-end;
+    margin-bottom: 2px;
+  }
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    width: 100%;
+    max-width: min(78%, 600px);
+  }
+  .bot-row {
+    align-self: flex-start;
+  }
+  .user-row {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
   /* Thin repeating geometric motif under the header — the page's one
      decorative signature, echoing tile borders without being literal */
   .header::after {
@@ -193,13 +222,12 @@
     background: var(--bg);
   }
   .msg {
-    max-width: min(78%, 600px);
-    align-self: flex-start;
     padding: 11px 15px;
     border-radius: 14px;
     line-height: 1.5;
     white-space: pre-wrap;
     font-size: 16px;
+    flex: 1;
   }
   .msg img {
     max-width: 100%;
@@ -208,13 +236,11 @@
     display: block;
   }
   .user {
-    align-self: flex-end;
     background: var(--blue);
     color: var(--ink);
     border-bottom-right-radius: 4px;
   }
   .bot {
-    align-self: flex-start;
     background: var(--blue);
     color: var(--ink);
     border: 1px solid rgba(43,58,103,0.15);
@@ -322,7 +348,7 @@
 
   <div class="chat-column">
     <div class="header">
-      <span class="header-title"><span class="crescent">🌙</span> Muslim AI</span>
+      <span class="header-title"><img src="mosque-logo.svg" class="ai-logo-header" alt="Muslim AI" /> Muslim AI</span>
       <div class="header-actions">
         <img id="userAvatar" class="user-avatar" alt="" onerror="this.style.display='none'" />
         <span id="userLabel" class="user-label"></span>
@@ -638,6 +664,18 @@
 
   // ---------- UI rendering ----------
   function addMessage(text, sender, imageSrc) {
+    // For bot messages, wrap the bubble in a row with the mosque logo on the left
+    const wrapper = document.createElement('div');
+    wrapper.className = 'msg-row ' + sender + '-row';
+
+    if (sender === 'bot') {
+      const logo = document.createElement('img');
+      logo.src = 'mosque-logo.svg';
+      logo.className = 'ai-logo-bubble';
+      logo.alt = '';
+      wrapper.appendChild(logo);
+    }
+
     const div = document.createElement('div');
     div.className = 'msg ' + sender;
     if (text) {
@@ -650,7 +688,8 @@
       img.src = imageSrc;
       div.appendChild(img);
     }
-    messagesEl.appendChild(div);
+    wrapper.appendChild(div);
+    messagesEl.appendChild(wrapper);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return div;
   }
